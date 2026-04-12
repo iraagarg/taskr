@@ -1,0 +1,516 @@
+<html>
+  <head>
+    <title>Taskr</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #f5f4f0;
+        min-height: 100vh;
+        color: #1a1a1a;
+      }
+      .page {
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+      }
+      .logo {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      .logo h1 {
+        font-size: 22px;
+        font-weight: 500;
+        letter-spacing: -0.3px;
+      }
+      .logo p {
+        font-size: 13px;
+        color: #666;
+        margin-top: 4px;
+      }
+      .card {
+        background: #fff;
+        border: 0.5px solid rgba(0, 0, 0, 0.12);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+      }
+      .card-title {
+        font-size: 11px;
+        font-weight: 500;
+        color: #888;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      input[type="text"],
+      input[type="password"] {
+        height: 36px;
+        padding: 0 12px;
+        font-size: 14px;
+        background: #f5f4f0;
+        border: 0.5px solid rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        color: #1a1a1a;
+        outline: none;
+        font-family: inherit;
+      }
+      input[type="text"]:focus,
+      input[type="password"]:focus {
+        border-color: #534ab7;
+        box-shadow: 0 0 0 3px rgba(83, 74, 183, 0.1);
+      }
+      input::placeholder {
+        color: #aaa;
+      }
+      .btn {
+        height: 36px;
+        padding: 0 16px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 8px;
+        border: 0.5px solid rgba(0, 0, 0, 0.2);
+        background: transparent;
+        color: #1a1a1a;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s;
+      }
+      .btn:hover {
+        background: #f5f4f0;
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+      .btn-primary {
+        background: #534ab7;
+        border-color: #534ab7;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #3c3489;
+        border-color: #3c3489;
+      }
+      .btn-danger {
+        border-color: #f09595;
+        color: #a32d2d;
+        background: transparent;
+      }
+      .btn-danger:hover {
+        background: #fcebeb;
+      }
+      .btn-sm {
+        height: 28px;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+      .input-row {
+        display: flex;
+        gap: 8px;
+      }
+      .tabs {
+        display: flex;
+        gap: 2px;
+        margin-bottom: 16px;
+        background: #ebe9e4;
+        padding: 3px;
+        border-radius: 8px;
+        border: 0.5px solid rgba(0, 0, 0, 0.1);
+      }
+      .tab {
+        flex: 1;
+        height: 30px;
+        font-size: 13px;
+        font-weight: 500;
+        border: none;
+        background: transparent;
+        color: #666;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.15s;
+        font-family: inherit;
+      }
+      .tab.active {
+        background: #fff;
+        color: #1a1a1a;
+        border: 0.5px solid rgba(0, 0, 0, 0.1);
+      }
+      .section {
+        display: none;
+      }
+      .section.active {
+        display: block;
+      }
+      .todo-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: #f5f4f0;
+        border-radius: 8px;
+        border: 0.5px solid rgba(0, 0, 0, 0.08);
+        margin-bottom: 6px;
+      }
+      .todo-check {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 1.5px solid #ccc;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .todo-check.done {
+        background: #534ab7;
+        border-color: #534ab7;
+      }
+      .todo-check svg {
+        display: none;
+      }
+      .todo-check.done svg {
+        display: block;
+      }
+      .todo-title {
+        flex: 1;
+        font-size: 14px;
+      }
+      .todo-title.done {
+        text-decoration: line-through;
+        color: #aaa;
+      }
+      .badge {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 999px;
+      }
+      .badge-done {
+        background: #eaf3de;
+        color: #3b6d11;
+      }
+      .badge-pending {
+        background: #faeeda;
+        color: #854f0b;
+      }
+      .user-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .user-name {
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .user-label {
+        font-size: 11px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 2px;
+      }
+      .empty {
+        text-align: center;
+        padding: 2rem 0;
+        font-size: 13px;
+        color: #aaa;
+      }
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #fff;
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.2s;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.7/axios.min.js"></script>
+  <script>
+    function switchTab(tab) {
+      document
+        .querySelectorAll(".tab")
+        .forEach((t, i) =>
+          t.classList.toggle("active", ["auth", "todos"][i] === tab),
+        );
+      document
+        .getElementById("auth-section")
+        .classList.toggle("active", tab === "auth");
+      document
+        .getElementById("todos-section")
+        .classList.toggle("active", tab === "todos");
+    }
+
+    function showToast(msg, type) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.background = type === "success" ? "#534AB7" : "#A32D2D";
+      t.style.opacity = 1;
+      setTimeout(() => (t.style.opacity = 0), 2500);
+    }
+
+    async function signup() {
+      const username = document.getElementById("signup-username").value;
+      const password = document.getElementById("signup-password").value;
+      try {
+        const res = await axios.post("http://localhost:3000/signup", {
+          username,
+          password,
+        });
+        showToast(res.data.message, "success");
+      } catch (err) {
+        showToast(err.response.data.message, "error");
+      }
+    }
+
+    async function signin() {
+      const username = document.getElementById("signin-username").value;
+      const password = document.getElementById("signin-password").value;
+      try {
+        const response = await axios.post("http://localhost:3000/signin", {
+          username,
+          password,
+        });
+        localStorage.setItem("token", response.data.token);
+        document.getElementById("information").textContent = username;
+        showToast("Signed in successfully", "success");
+        switchTab("todos");
+        getTodos();
+      } catch (err) {
+        showToast(err.response.data.message, "error");
+      }
+    }
+
+    async function getUserInformation() {
+      try {
+        const response = await axios.get("http://localhost:3000/me", {
+          headers: { authorization: localStorage.getItem("token") },
+        });
+        document.getElementById("information").textContent =
+          response.data.username;
+        showToast("Info refreshed", "success");
+      } catch (err) {
+        showToast(err.response?.data?.message || "Not signed in", "error");
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      document.getElementById("information").textContent = "—";
+      document.getElementById("todos").innerHTML =
+        '<div class="empty">Sign in to see your todos</div>';
+      document.getElementById("signup-username").value = "";
+      document.getElementById("signup-password").value = "";
+      document.getElementById("signin-username").value = "";
+      document.getElementById("signin-password").value = "";
+      showToast("Signed out", "success");
+    }
+
+    async function createTodo() {
+      const title = document.getElementById("todo-input").value;
+      try {
+        await axios.post(
+          "http://localhost:3000/todos",
+          { title },
+          {
+            headers: { authorization: localStorage.getItem("token") },
+          },
+        );
+        document.getElementById("todo-input").value = "";
+        getTodos();
+      } catch (err) {
+        showToast(err.response.data.message, "error");
+      }
+    }
+
+    async function getTodos() {
+      try {
+        const response = await axios.get("http://localhost:3000/todos", {
+          headers: { authorization: localStorage.getItem("token") },
+        });
+        const todos = response.data.todos;
+        const container = document.getElementById("todos");
+        if (!todos.length) {
+          container.innerHTML =
+            '<div class="empty">No todos yet. Add one above!</div>';
+          return;
+        }
+        container.innerHTML = "";
+        todos.forEach((todo) => {
+          const div = document.createElement("div");
+          div.className = "todo-item";
+          div.innerHTML = `
+  <div class="todo-check ${todo.completed ? "done" : ""}" ${!todo.completed ? `onclick="markDone('${todo.id}')"` : ""}>
+    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+      <path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <span class="todo-title ${todo.completed ? "done" : ""}">${todo.title}</span>
+  <span class="badge ${todo.completed ? "badge-done" : "badge-pending"}">${todo.completed ? "Done" : "Pending"}</span>
+  <button class="btn btn-sm btn-danger" onclick="deleteTodo('${todo.id}')">Delete</button>
+`;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        showToast(
+          err.response?.data?.message || "Error loading todos",
+          "error",
+        );
+      }
+    }
+
+    async function markDone(id) {
+      try {
+        await axios.put(
+          `http://localhost:3000/todos/${id}`,
+          {},
+          {
+            headers: { authorization: localStorage.getItem("token") },
+          },
+        );
+        getTodos();
+      } catch (err) {
+        showToast(err.response.data.message, "error");
+      }
+    }
+
+    async function deleteTodo(id) {
+      try {
+        await axios.delete(`http://localhost:3000/todos/${id}`, {
+          headers: { authorization: localStorage.getItem("token") },
+        });
+        getTodos();
+      } catch (err) {
+        showToast(err.response.data.message, "error");
+      }
+    }
+  </script>
+
+  <body>
+    <div class="page">
+      <div class="logo">
+        <h1>Taskr</h1>
+        <p>Your personal todo manager</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('auth')">Account</button>
+        <button class="tab" onclick="switchTab('todos')">Todos</button>
+      </div>
+
+      <div id="auth-section" class="section active">
+        <div class="card">
+          <div class="card-title">Sign up</div>
+          <div class="input-row" style="margin-bottom: 10px">
+            <input
+              type="text"
+              id="signup-username"
+              placeholder="Username"
+              style="flex: 1"
+            />
+            <input
+              type="password"
+              id="signup-password"
+              placeholder="Password"
+              style="flex: 1"
+            />
+          </div>
+          <div style="display: flex; justify-content: flex-end">
+            <button class="btn btn-primary" onclick="signup()">
+              Create account
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Sign in</div>
+          <div class="input-row" style="margin-bottom: 10px">
+            <input
+              type="text"
+              id="signin-username"
+              placeholder="Username"
+              style="flex: 1"
+            />
+            <input
+              type="password"
+              id="signin-password"
+              placeholder="Password"
+              style="flex: 1"
+            />
+          </div>
+          <div style="display: flex; justify-content: flex-end">
+            <button class="btn btn-primary" onclick="signin()">Sign in</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="user-bar">
+            <div>
+              <div class="user-label">Logged in as</div>
+              <div class="user-name" id="information">—</div>
+            </div>
+            <div style="display: flex; gap: 6px">
+              <button class="btn btn-sm" onclick="getUserInformation()">
+                Refresh
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="logout()">
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="todos-section" class="section">
+        <div class="card">
+          <div class="card-title">New todo</div>
+          <div style="display: flex; gap: 8px">
+            <input
+              type="text"
+              id="todo-input"
+              placeholder="What needs to get done?"
+              style="flex: 1"
+            />
+            <button class="btn btn-primary" onclick="createTodo()">Add</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 12px;
+            "
+          >
+            <div class="card-title" style="margin-bottom: 0">Your todos</div>
+            <button class="btn btn-sm" onclick="getTodos()">Refresh</button>
+          </div>
+          <div id="todos">
+            <div class="empty">Sign in to see your todos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+  </body>
+</html>
