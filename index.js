@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const cors = require("cors");
 const mongoose = require("mongoose");
+const bcrypt = require('bcrypt');
 
 require("dotenv").config();
 
@@ -69,9 +70,11 @@ app.post('/signup', async function (req, res) {
             });
         }
 
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         await UserModel.create({
             username,
-            password
+            password : hashedPassword,
         });
 
         res.json({
@@ -88,12 +91,18 @@ app.post('/signin', async function (req, res) {
     const password = req.body.password;
 
     try {
-        const foundUser = await UserModel.findOne({ username, password });
+        const foundUser = await UserModel.findOne({ username });
 
         if (!foundUser) {
             return res.status(403).json({ message: 'Invalid username or password' });
         }
 
+        const passwordMatch = await bcrypt.compare(password, foundUser.password);
+
+        if(!passwordMatch) {
+            return res.status(403).json({ message: 'Invalid username or password' });
+        }
+        
     const token = jwt.sign(
         { userId: foundUser._id, username: foundUser.username },
         JWT_SECRET
@@ -221,3 +230,6 @@ app.delete('/todos/:id', auth, async function (req, res) {
 app.listen(PORT, function () {
     console.log(`Server is running on port ${PORT}`);
 });
+
+//const hashedpassword = await bcrypt.hash(password, 5);
+//bycrypt.compare
