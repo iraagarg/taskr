@@ -14,8 +14,13 @@ const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+app.use(express.static(__dirname));
 
 //Zod schemas
 const signupSchema = z.object ({
@@ -70,10 +75,10 @@ app.post('/signup', async function (req, res) {
     const result = signupSchema.safeParse(req.body);  
 
    if(!result.success) {
-        return res.status(400).json({
-            message: result.error.errors[0].message   // shows first validation error
-        });
-    }
+    return res.status(400).json({
+        message: result.error.issues[0].message 
+    });
+}
 
      const { username, password } = result.data;
 
@@ -110,7 +115,7 @@ app.post('/signin', async function (req, res) {
 
     if(!result.success) {
         return res.status(400).json({
-            message: result.error.errors[0].message
+            message: result.error.issues[0].message
         });
     }
 
@@ -165,7 +170,7 @@ app.post('/todos', auth, async function (req, res) {
 
     if(!result.success) {
         return res.status(400).json({
-            message: result.error.errors[0].message
+            message: result.error.issues[0].message
         });
     }
 

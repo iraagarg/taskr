@@ -244,6 +244,16 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.7/axios.min.js"></script>
   <script>
+
+    // ─── FIX 1: Configure Axios to never throw on 4xx responses ──────────────
+    // This is the ROOT CAUSE of the empty toast bug.
+    // By default Axios throws an error for any non-2xx status (like 400),
+    // and when thrown from a file:// origin the browser blocks the response body.
+    // By returning the response always, we can read the message directly.
+    axios.defaults.validateStatus = function () {
+      return true; // always resolve, never reject — we check res.status manually
+    };
+
     function switchTab(tab) {
       document
         .querySelectorAll(".tab")
@@ -266,6 +276,10 @@
       setTimeout(() => (t.style.opacity = 0), 2500);
     }
 
+    // ─── FIX 2: All functions now check res.status directly ──────────────────
+    // No more try/catch needed for HTTP errors since axios never throws.
+    // We just check if status is ok and read res.data.message directly.
+
     async function signup() {
       const username = document.getElementById("signup-username").value;
       const password = document.getElementById("signup-password").value;
@@ -274,9 +288,13 @@
           username,
           password,
         });
-        showToast(res.data.message, "success");
+        if (res.status === 200) {
+          showToast(res.data.message, "success");
+        } else {
+          showToast(res.data.message || "Signup failed", "error");
+        }
       } catch (err) {
-        showToast(err.response.data.message, "error");
+        showToast("Network error. Is the server running?", "error");
       }
     }
 
@@ -284,30 +302,37 @@
       const username = document.getElementById("signin-username").value;
       const password = document.getElementById("signin-password").value;
       try {
-        const response = await axios.post("http://localhost:3000/signin", {
+        const res = await axios.post("http://localhost:3000/signin", {
           username,
           password,
         });
-        localStorage.setItem("token", response.data.token);
-        document.getElementById("information").textContent = username;
-        showToast("Signed in successfully", "success");
-        switchTab("todos");
-        getTodos();
+        if (res.status === 200) {
+          localStorage.setItem("token", res.data.token);
+          document.getElementById("information").textContent = username;
+          showToast("Signed in successfully", "success");
+          switchTab("todos");
+          getTodos();
+        } else {
+          showToast(res.data.message || "Signin failed", "error");
+        }
       } catch (err) {
-        showToast(err.response.data.message, "error");
+        showToast("Network error. Is the server running?", "error");
       }
     }
 
     async function getUserInformation() {
       try {
-        const response = await axios.get("http://localhost:3000/me", {
+        const res = await axios.get("http://localhost:3000/me", {
           headers: { authorization: localStorage.getItem("token") },
         });
-        document.getElementById("information").textContent =
-          response.data.username;
-        showToast("Info refreshed", "success");
+        if (res.status === 200) {
+          document.getElementById("information").textContent = res.data.username;
+          showToast("Info refreshed", "success");
+        } else {
+          showToast(res.data.message || "Not signed in", "error");
+        }
       } catch (err) {
-        showToast(err.response?.data?.message || "Not signed in", "error");
+        showToast("Network error. Is the server running?", "error");
       }
     }
 
@@ -326,26 +351,32 @@
     async function createTodo() {
       const title = document.getElementById("todo-input").value;
       try {
-        await axios.post(
+        const res = await axios.post(
           "http://localhost:3000/todos",
           { title },
-          {
-            headers: { authorization: localStorage.getItem("token") },
-          },
+          { headers: { authorization: localStorage.getItem("token") } },
         );
-        document.getElementById("todo-input").value = "";
-        getTodos();
+        if (res.status === 200) {
+          document.getElementById("todo-input").value = "";
+          getTodos();
+        } else {
+          showToast(res.data.message || "Failed to create todo", "error");
+        }
       } catch (err) {
-        showToast(err.response.data.message, "error");
+        showToast("Network error. Is the server running?", "error");
       }
     }
 
     async function getTodos() {
       try {
-        const response = await axios.get("http://localhost:3000/todos", {
+        const res = await axios.get("http://localhost:3000/todos", {
           headers: { authorization: localStorage.getItem("token") },
         });
-        const todos = response.data.todos;
+        if (res.status !== 200) {
+          showToast(res.data.message || "Error loading todos", "error");
+          return;
+        }
+        const todos = res.data.todos;
         const container = document.getElementById("todos");
         if (!todos.length) {
           container.innerHTML =
@@ -357,48 +388,51 @@
           const div = document.createElement("div");
           div.className = "todo-item";
           div.innerHTML = `
-  <div class="todo-check ${todo.completed ? "done" : ""}" ${!todo.completed ? `onclick="markDone('${todo.id}')"` : ""}>
-    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-      <path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </div>
-  <span class="todo-title ${todo.completed ? "done" : ""}">${todo.title}</span>
-  <span class="badge ${todo.completed ? "badge-done" : "badge-pending"}">${todo.completed ? "Done" : "Pending"}</span>
-  <button class="btn btn-sm btn-danger" onclick="deleteTodo('${todo.id}')">Delete</button>
-`;
+            <div class="todo-check ${todo.completed ? "done" : ""}" ${!todo.completed ? `onclick="markDone('${todo.id}')"` : ""}>
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span class="todo-title ${todo.completed ? "done" : ""}">${todo.title}</span>
+            <span class="badge ${todo.completed ? "badge-done" : "badge-pending"}">${todo.completed ? "Done" : "Pending"}</span>
+            <button class="btn btn-sm btn-danger" onclick="deleteTodo('${todo.id}')">Delete</button>
+          `;
           container.appendChild(div);
         });
       } catch (err) {
-        showToast(
-          err.response?.data?.message || "Error loading todos",
-          "error",
-        );
+        showToast("Network error. Is the server running?", "error");
       }
     }
 
     async function markDone(id) {
       try {
-        await axios.put(
+        const res = await axios.put(
           `http://localhost:3000/todos/${id}`,
           {},
-          {
-            headers: { authorization: localStorage.getItem("token") },
-          },
+          { headers: { authorization: localStorage.getItem("token") } },
         );
-        getTodos();
+        if (res.status === 200) {
+          getTodos();
+        } else {
+          showToast(res.data.message || "Failed to update todo", "error");
+        }
       } catch (err) {
-        showToast(err.response.data.message, "error");
+        showToast("Network error. Is the server running?", "error");
       }
     }
 
     async function deleteTodo(id) {
       try {
-        await axios.delete(`http://localhost:3000/todos/${id}`, {
+        const res = await axios.delete(`http://localhost:3000/todos/${id}`, {
           headers: { authorization: localStorage.getItem("token") },
         });
-        getTodos();
+        if (res.status === 200) {
+          getTodos();
+        } else {
+          showToast(res.data.message || "Failed to delete todo", "error");
+        }
       } catch (err) {
-        showToast(err.response.data.message, "error");
+        showToast("Network error. Is the server running?", "error");
       }
     }
   </script>
