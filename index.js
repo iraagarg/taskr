@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const cors = require("cors");
 const mongoose = require("mongoose");
 const bcrypt = require('bcrypt');
+const { z } = require('zod');
 
 require("dotenv").config();
 
@@ -15,6 +16,21 @@ const MONGO_URI = process.env.MONGO_URI;
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+//Zod schemas
+const signupSchema = z.object ({
+    username: z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be at most 20 characters"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const signinSchema = z.object({
+    username: z.string().min(1, "Username is required"),
+    password: z.string().min(1, "Password is required"),
+});
+
+const todoSchema = z.object({
+    title: z.string().min(1, "Title is required").max(100, "Title must be at most 100 characters"),
+});
 
 // Connect to MongoDB
 mongoose
@@ -51,14 +67,16 @@ function auth(req, res, next) {
 
 //SIGNUP ROUTE
 app.post('/signup', async function (req, res) {
-    const username = req.body.username;
-    const password = req.body.password;
+    const result = signupSchema.safeParse(req.body);  
 
-    if(!username || !password) {
-    return res.status(400).json({
-        message: "Username and password required"
-    });
-}
+   if(!result.success) {
+        return res.status(400).json({
+            message: result.error.errors[0].message   // shows first validation error
+        });
+    }
+
+     const { username, password } = result.data;
+
     try {
         const exisitingUser = await UserModel.findOne({
             username
@@ -85,10 +103,18 @@ app.post('/signup', async function (req, res) {
     }
 });
 
+
 //SIGNIN ROUTE
 app.post('/signin', async function (req, res) {
-    const username = req.body.username;
-    const password = req.body.password;
+    const result = signinSchema.safeParse(req.body);
+
+    if(!result.success) {
+        return res.status(400).json({
+            message: result.error.errors[0].message
+        });
+    }
+
+    const { username, password } = result.data;
 
     try {
         const foundUser = await UserModel.findOne({ username });
@@ -102,16 +128,16 @@ app.post('/signin', async function (req, res) {
         if(!passwordMatch) {
             return res.status(403).json({ message: 'Invalid username or password' });
         }
-        
-    const token = jwt.sign(
-        { userId: foundUser._id, username: foundUser.username },
-        JWT_SECRET
-    )
 
-    res.json({
-        message: "Signin successful",
-        token
-    });
+        const token = jwt.sign(
+            { userId: foundUser._id, username: foundUser.username },
+            JWT_SECRET
+        );
+
+        res.json({
+            message: "Signin successful",
+            token
+        });
     } catch(err) {
         res.status(500).json({ message: 'Internal server error' });
     }
@@ -135,13 +161,15 @@ app.get('/me', auth,async function (req, res) {
 
 //CREATE TODO
 app.post('/todos', auth, async function (req, res) {
-    const { title } = req.body;
+    const result = todoSchema.safeParse(req.body);
 
-    if(!title) {
+    if(!result.success) {
         return res.status(400).json({
-            message: "Title is required"
+            message: result.error.errors[0].message
         });
     }
+
+    const { title } = result.data;
 
     try {
         const newTodo = await TodoModel.create({
@@ -152,12 +180,12 @@ app.post('/todos', auth, async function (req, res) {
 
         res.json({
             message: 'Todo created',
-            todo : {
+            todo: {
                 id: newTodo._id,
                 title: newTodo.title,
                 completed: newTodo.completed,
             },
-        }) 
+        });
     } catch (err) {
         res.status(500).json({ message: 'Internal server error' });
     }
